@@ -1,7 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Server, Database, ShieldCheck, Cpu, RefreshCw, CheckCircle2, XCircle } from 'lucide-react';
 import api from './services/api';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ProtectedRoute from './components/ProtectedRoute';
+import AdminDashboard from './pages/dashboards/AdminDashboard';
+import TeacherDashboard from './pages/dashboards/TeacherDashboard';
+import StudentDashboard from './pages/dashboards/StudentDashboard';
 
 interface HealthData {
   status: string;
@@ -35,41 +42,35 @@ const HealthStatus: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-6 md:p-12 relative overflow-hidden">
-      {/* Background ambient lighting */}
       <div className="absolute -top-40 -left-40 w-96 h-96 bg-brand-600/20 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Header */}
       <header className="flex items-center justify-between z-10">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-brand-500/30">
             <Cpu className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
-              AcademiaPro ERP
-            </h1>
+            <h1 className="text-xl font-bold tracking-tight text-white">AcademiaPro ERP</h1>
             <p className="text-xs text-slate-400 font-medium">Enterprise College Management Platform</p>
           </div>
         </div>
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-semibold text-brand-400">
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/80 border border-slate-800 text-xs font-semibold text-emerald-400">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          Phase 1: Foundation Ready
+          Phase 2: Auth Ready
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-4xl mx-auto w-full my-12 z-10">
         <div className="text-center mb-10">
           <h2 className="text-4xl font-extrabold tracking-tight text-white mb-3">
             System Status & Architecture Diagnostics
           </h2>
           <p className="text-slate-400 text-base max-w-xl mx-auto">
-            Phase 1 setup complete: Vite React TypeScript Frontend, Node Express Backend, and Prisma ORM Database layer are active.
+            Vite React TypeScript Frontend, Node Express Backend, Prisma ORM Database, and JWT Authentication Layer active.
           </p>
         </div>
 
-        {/* Health Card */}
         <div className="glass-panel rounded-2xl p-8 shadow-2xl relative">
           <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-800">
             <div className="flex items-center space-x-3">
@@ -126,28 +127,86 @@ const HealthStatus: React.FC = () => {
                   <ShieldCheck className="w-5 h-5 text-indigo-400" />
                   <span className="text-sm text-slate-300">Timestamp: {new Date(health.timestamp).toLocaleString()}</span>
                 </div>
-                <span className="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono">Express + Prisma</span>
+                <span className="text-xs px-2.5 py-1 rounded bg-slate-800 text-slate-300 font-mono">Express + JWT + Prisma</span>
               </div>
             </div>
           ) : null}
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="text-center text-xs text-slate-500 z-10">
-        AcademiaPro College ERP &copy; 2026 | Built for Production & Scaling
+        AcademiaPro College ERP &copy; 2026
       </footer>
     </div>
   );
 };
 
+const RootRedirect: React.FC = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-300">
+        <RefreshCw className="w-8 h-8 animate-spin text-brand-500 mb-3" />
+        <p className="text-sm font-medium">Initializing AcademiaPro ERP...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role === 'ADMIN') return <Navigate to="/admin/dashboard" replace />;
+  if (user.role === 'TEACHER') return <Navigate to="/teacher/dashboard" replace />;
+  return <Navigate to="/student/dashboard" replace />;
+};
+
+const AppRoutes: React.FC = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<RootRedirect />} />
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/health" element={<HealthStatus />} />
+
+      <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['ADMIN']}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/teacher/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['TEACHER']}>
+            <TeacherDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/dashboard"
+        element={
+          <ProtectedRoute allowedRoles={['STUDENT']}>
+            <StudentDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+};
+
 const App: React.FC = () => {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<HealthStatus />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <AppRoutes />
+      </Router>
+    </AuthProvider>
   );
 };
 

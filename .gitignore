@@ -1,6 +1,11 @@
+# Phase roadmap tracking file
+PHASE.md
+phase*
+
 # Dependencies
 node_modules
 **/node_modules
+
 
 # Production builds
 dist

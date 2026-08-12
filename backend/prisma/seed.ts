@@ -149,7 +149,66 @@ async function main() {
       },
     },
   });
-  console.log('✓ Demo Student created: student@demo.com');
+  // 9. Assign Demo Teacher to Subject & Section
+  const student = await prisma.student.findUnique({ where: { email: 'student@demo.com' } });
+  const teacher = await prisma.teacher.findUnique({ where: { email: 'teacher@demo.com' } });
+
+  if (student && teacher) {
+    await prisma.teacherSubject.upsert({
+      where: {
+        teacherId_subjectId_sectionId_academicYear: {
+          teacherId: teacher.id,
+          subjectId: subject.id,
+          sectionId: section.id,
+          academicYear: '2026-2027',
+        },
+      },
+      update: {},
+      create: {
+        teacherId: teacher.id,
+        subjectId: subject.id,
+        sectionId: section.id,
+        academicYear: '2026-2027',
+      },
+    });
+    console.log('✓ Teacher allocated to subject CS101 in Section A');
+
+    // 10. Seed Demo Attendance Records for Student
+    const sampleDates = [
+      { date: '2026-08-01', status: 'PRESENT' },
+      { date: '2026-08-02', status: 'PRESENT' },
+      { date: '2026-08-03', status: 'PRESENT' },
+      { date: '2026-08-04', status: 'LATE' },
+      { date: '2026-08-05', status: 'PRESENT' },
+      { date: '2026-08-06', status: 'ABSENT' },
+      { date: '2026-08-07', status: 'PRESENT' },
+      { date: '2026-08-08', status: 'PRESENT' },
+      { date: '2026-08-09', status: 'EXCUSED' },
+      { date: '2026-08-10', status: 'PRESENT' },
+    ];
+
+    for (const item of sampleDates) {
+      await prisma.attendance.upsert({
+        where: {
+          studentId_subjectId_date: {
+            studentId: student.id,
+            subjectId: subject.id,
+            date: item.date,
+          },
+        },
+        update: { status: item.status },
+        create: {
+          studentId: student.id,
+          subjectId: subject.id,
+          sectionId: section.id,
+          date: item.date,
+          status: item.status,
+          markedById: adminUser.id,
+        },
+      });
+    }
+    console.log('✓ Seeded 10 demo attendance sessions');
+  }
 
   console.log('✅ Seed completed successfully!');
 }

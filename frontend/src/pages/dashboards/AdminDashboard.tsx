@@ -11,12 +11,14 @@ import {
   Menu,
   X,
   Sparkles,
+  CheckSquare,
 } from 'lucide-react';
 import OverviewTab from '../../components/admin/OverviewTab';
 import StudentManagement from '../../components/admin/StudentManagement';
 import TeacherManagement from '../../components/admin/TeacherManagement';
 import AcademicManagement from '../../components/admin/AcademicManagement';
 import SubjectManagement from '../../components/admin/SubjectManagement';
+import AdminAttendanceMonitor from '../../components/admin/AdminAttendanceMonitor';
 
 import { departmentService, Department } from '../../services/departmentService';
 import { courseService, Course } from '../../services/courseService';
@@ -28,7 +30,9 @@ import { studentService } from '../../services/studentService';
 
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
-  const [activeTab, setActiveTab] = useState<'overview' | 'students' | 'teachers' | 'academic' | 'subjects'>('overview');
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'students' | 'teachers' | 'academic' | 'subjects' | 'attendance'
+  >('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Master Shared State
@@ -120,7 +124,10 @@ export const AdminDashboard: React.FC = () => {
           {/* Navigation Links */}
           <nav className="space-y-1.5 pt-4">
             <button
-              onClick={() => { setActiveTab('overview'); setIsSidebarOpen(false); }}
+              onClick={() => {
+                setActiveTab('overview');
+                setIsSidebarOpen(false);
+              }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition ${
                 activeTab === 'overview'
                   ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-lg shadow-brand-600/25'
@@ -132,7 +139,10 @@ export const AdminDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={() => { setActiveTab('students'); setIsSidebarOpen(false); }}
+              onClick={() => {
+                setActiveTab('students');
+                setIsSidebarOpen(false);
+              }}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold transition ${
                 activeTab === 'students'
                   ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-lg shadow-brand-600/25'
@@ -149,7 +159,10 @@ export const AdminDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={() => { setActiveTab('teachers'); setIsSidebarOpen(false); }}
+              onClick={() => {
+                setActiveTab('teachers');
+                setIsSidebarOpen(false);
+              }}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold transition ${
                 activeTab === 'teachers'
                   ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-lg shadow-brand-600/25'
@@ -166,7 +179,10 @@ export const AdminDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={() => { setActiveTab('academic'); setIsSidebarOpen(false); }}
+              onClick={() => {
+                setActiveTab('academic');
+                setIsSidebarOpen(false);
+              }}
               className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition ${
                 activeTab === 'academic'
                   ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-lg shadow-brand-600/25'
@@ -178,7 +194,10 @@ export const AdminDashboard: React.FC = () => {
             </button>
 
             <button
-              onClick={() => { setActiveTab('subjects'); setIsSidebarOpen(false); }}
+              onClick={() => {
+                setActiveTab('subjects');
+                setIsSidebarOpen(false);
+              }}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold transition ${
                 activeTab === 'subjects'
                   ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-lg shadow-brand-600/25'
@@ -192,6 +211,21 @@ export const AdminDashboard: React.FC = () => {
               <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] text-amber-300 font-mono">
                 {stats.subjectsCount}
               </span>
+            </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('attendance');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition ${
+                activeTab === 'attendance'
+                  ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-lg shadow-brand-600/25'
+                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+              }`}
+            >
+              <CheckSquare className="w-4 h-4 text-emerald-400" />
+              <span>Attendance Monitor</span>
             </button>
           </nav>
         </div>
@@ -234,16 +268,17 @@ export const AdminDashboard: React.FC = () => {
                 {activeTab === 'teachers' && 'Faculty Roster & Allocation'}
                 {activeTab === 'academic' && 'Academic Structures'}
                 {activeTab === 'subjects' && 'Subject Syllabus & Curriculum'}
+                {activeTab === 'attendance' && 'College Attendance Monitor & Analytics'}
               </h2>
               <p className="text-xs text-slate-400 font-medium hidden sm:block">
-                AcademiaPro Enterprise System &bull; Phase 3 Complete
+                AcademiaPro Enterprise System &bull; Phase 4 Active
               </p>
             </div>
           </div>
 
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-semibold text-emerald-400">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Phase 3 Active</span>
+            <span>Phase 4 Active</span>
           </div>
         </header>
 
@@ -285,6 +320,15 @@ export const AdminDashboard: React.FC = () => {
               subjects={subjects}
               courses={courses}
               onRefresh={loadAllMasterData}
+            />
+          )}
+
+          {activeTab === 'attendance' && (
+            <AdminAttendanceMonitor
+              departments={departments}
+              courses={courses}
+              semesters={semesters}
+              sections={sections}
             />
           )}
         </div>

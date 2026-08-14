@@ -208,6 +208,65 @@ async function main() {
       });
     }
     console.log('✓ Seeded 10 demo attendance sessions');
+
+    // 11. Seed Demo Exams & Marks
+    const exam1 = await prisma.exam.create({
+      data: {
+        name: 'Internal Assessment 1',
+        examType: 'INTERNAL_1',
+        subjectId: subject.id,
+        maxMarks: 50,
+        date: '2026-08-15',
+        academicYear: '2026-2027',
+      },
+    });
+
+    const exam2 = await prisma.exam.create({
+      data: {
+        name: 'Mid Semester Examination',
+        examType: 'MID_SEM',
+        subjectId: subject.id,
+        maxMarks: 100,
+        date: '2026-09-20',
+        academicYear: '2026-2027',
+      },
+    });
+
+    await prisma.marks.upsert({
+      where: {
+        examId_studentId: {
+          examId: exam1.id,
+          studentId: student.id,
+        },
+      },
+      update: { marksObtained: 44 },
+      create: {
+        examId: exam1.id,
+        studentId: student.id,
+        subjectId: subject.id,
+        marksObtained: 44,
+        enteredById: teacherUser.id,
+      },
+    });
+
+    await prisma.marks.upsert({
+      where: {
+        examId_studentId: {
+          examId: exam2.id,
+          studentId: student.id,
+        },
+      },
+      update: { marksObtained: 88 },
+      create: {
+        examId: exam2.id,
+        studentId: student.id,
+        subjectId: subject.id,
+        marksObtained: 88,
+        enteredById: teacherUser.id,
+      },
+    });
+
+    console.log('✓ Seeded 2 demo exams and student marks');
   }
 
   console.log('✅ Seed completed successfully!');

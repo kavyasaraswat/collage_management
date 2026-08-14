@@ -10,6 +10,8 @@ import subjectRoutes from './routes/subject';
 import teacherRoutes from './routes/teacher';
 import studentRoutes from './routes/student';
 import attendanceRoutes from './routes/attendance';
+import examRoutes from './routes/exam';
+import marksRoutes from './routes/marks';
 
 const app: Express = express();
 
@@ -29,6 +31,8 @@ app.use('/api/subjects', subjectRoutes);
 app.use('/api/teachers', teacherRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/exams', examRoutes);
+app.use('/api/marks', marksRoutes);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

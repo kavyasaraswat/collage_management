@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { GraduationCap, LogOut, BookOpen, Calendar, CheckSquare, Sparkles, LayoutDashboard } from 'lucide-react';
+import { GraduationCap, LogOut, BookOpen, Calendar, CheckSquare, Sparkles, LayoutDashboard, Award } from 'lucide-react';
 import TeacherAttendance from '../../components/teacher/TeacherAttendance';
+import TeacherMarksEntry from '../../components/teacher/TeacherMarksEntry';
 
 export const TeacherDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const teacher = user?.teacher;
-  const [activeTab, setActiveTab] = useState<'attendance' | 'overview'>('attendance');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'marks' | 'overview'>('attendance');
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between p-4 md:p-8 relative overflow-hidden font-sans">
@@ -39,6 +40,19 @@ export const TeacherDashboard: React.FC = () => {
             <CheckSquare className="w-3.5 h-3.5" />
             <span>Mark Attendance</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('marks')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+              activeTab === 'marks'
+                ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Award className="w-3.5 h-3.5 text-amber-400" />
+            <span>Marks Entry</span>
+          </button>
+
           <button
             onClick={() => setActiveTab('overview')}
             className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
@@ -76,7 +90,7 @@ export const TeacherDashboard: React.FC = () => {
           <div className="space-y-6">
             <div className="glass-panel p-8 rounded-3xl border border-slate-800">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs font-semibold text-emerald-400 mb-3">
-                <Sparkles className="w-4 h-4" /> Phase 4 Attendance System Active
+                <Sparkles className="w-4 h-4" /> Phase 5 Exams &amp; Grading Engine Active
               </span>
               <h2 className="text-3xl font-extrabold text-white mb-2">Welcome, {teacher?.name || 'Faculty Member'}!</h2>
               <p className="text-slate-400 text-sm max-w-xl">
@@ -92,16 +106,16 @@ export const TeacherDashboard: React.FC = () => {
                 </div>
                 <div>
                   <p className="text-xs text-slate-400 uppercase font-medium">Assigned Subject</p>
-                  <p className="text-lg font-bold text-white mt-1">Data Structures & Algorithms</p>
+                  <p className="text-lg font-bold text-white mt-1">Data Structures &amp; Algorithms</p>
                 </div>
               </div>
 
               <div className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center space-x-4">
                 <div className="p-3 bg-indigo-500/10 rounded-xl text-indigo-400">
-                  <CheckSquare className="w-6 h-6" />
+                  <Award className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-xs text-slate-400 uppercase font-medium">Attendance Subsystem</p>
+                  <p className="text-xs text-slate-400 uppercase font-medium">Grading Subsystem</p>
                   <p className="text-lg font-bold text-emerald-400 mt-1">Active &amp; Verified</p>
                 </div>
               </div>
@@ -117,6 +131,8 @@ export const TeacherDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+        ) : activeTab === 'marks' ? (
+          <TeacherMarksEntry />
         ) : (
           <TeacherAttendance />
         )}

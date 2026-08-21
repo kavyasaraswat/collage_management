@@ -13,30 +13,56 @@ import {
   RefreshCw,
   Sparkles,
   TrendingUp,
+  CreditCard,
+  Printer,
+  DollarSign,
+  Send,
+  X,
+  FileText,
 } from 'lucide-react';
 import { attendanceService, StudentAttendanceSummary } from '../../services/attendanceService';
 import { marksService, StudentScorecardData } from '../../services/marksService';
+import feeService, { StudentFee, StudentFeeSummary } from '../../services/feeService';
+import ReceiptModal from '../../components/ReceiptModal';
 
 export const StudentDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const student = user?.student;
 
-  const [activeTab, setActiveTab] = useState<'attendance' | 'results'>('attendance');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'results' | 'fees'>('attendance');
 
   const [summary, setSummary] = useState<StudentAttendanceSummary | null>(null);
   const [scorecard, setScorecard] = useState<StudentScorecardData | null>(null);
+  const [feeSummary, setFeeSummary] = useState<StudentFeeSummary | null>(null);
+  const [studentFees, setStudentFees] = useState<StudentFee[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Payment Modal State
+  const [payFeeTarget, setPayFeeTarget] = useState<StudentFee | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<'ONLINE' | 'UPI' | 'CREDIT_CARD' | 'DEBIT_CARD' | 'NET_BANKING'>('UPI');
+  const [payLoading, setPayLoading] = useState(false);
+  const [payError, setPayError] = useState('');
+  const [paySuccessMsg, setPaySuccessMsg] = useState('');
+
+  // Receipt Modal State
+  const [activeReceiptPaymentId, setActiveReceiptPaymentId] = useState<string | null>(null);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const [attRes, marksRes] = await Promise.all([
+      const [attRes, marksRes, feeRes] = await Promise.all([
         attendanceService.getMyAttendance(),
         marksService.getMyScorecard(),
+        feeService.getMyFees(),
       ]);
 
       if (attRes.success) setSummary(attRes.data);
       if (marksRes.success) setScorecard(marksRes.data);
+      if (feeRes.success) {
+        setFeeSummary(feeRes.data.summary);
+        setStudentFees(feeRes.data.studentFees);
+      }
     } catch (err) {
       console.error('Failed to load student dashboard data', err);
     } finally {
@@ -47,6 +73,50 @@ export const StudentDashboard: React.FC = () => {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleOpenPayModal = (fee: StudentFee) => {
+    setPayFeeTarget(fee);
+    setPaymentAmount(fee.remainingAmount);
+    setPayError('');
+    setPaySuccessMsg('');
+  };
+
+  const handleExecutePayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!payFeeTarget) return;
+
+    if (paymentAmount <= 0 || paymentAmount > payFeeTarget.remainingAmount) {
+      setPayError(`Please enter a valid payment amount up to ₹${payFeeTarget.remainingAmount}`);
+      return;
+    }
+
+    setPayLoading(true);
+    setPayError('');
+    setPaySuccessMsg('');
+
+    try {
+      const res = await feeService.makePayment({
+        studentFeeId: payFeeTarget.id,
+        amount: Number(paymentAmount),
+        paymentMethod,
+        isMock: true,
+      });
+
+      if (res.success) {
+        setPaySuccessMsg(res.message);
+        setTimeout(() => {
+          setPayFeeTarget(null);
+          loadData();
+        }, 1500);
+      } else {
+        setPayError(res.message || 'Payment failed');
+      }
+    } catch (err: any) {
+      setPayError(err.response?.data?.message || 'Error executing payment gateway transaction');
+    } finally {
+      setPayLoading(false);
+    }
+  };
 
   const getHealthCategoryBadge = (category: string) => {
     switch (category) {
@@ -120,10 +190,10 @@ export const StudentDashboard: React.FC = () => {
         </div>
 
         {/* Tab Selector */}
-        <div className="flex items-center space-x-2 bg-slate-900 p-1 rounded-xl border border-slate-800">
+        <div className="flex items-center space-x-2 bg-slate-900 p-1 rounded-xl border border-slate-800 overflow-x-auto">
           <button
             onClick={() => setActiveTab('attendance')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'attendance'
                 ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white'
@@ -135,7 +205,7 @@ export const StudentDashboard: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('results')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'results'
                 ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md'
                 : 'text-slate-400 hover:text-white'
@@ -143,6 +213,18 @@ export const StudentDashboard: React.FC = () => {
           >
             <Award className="w-3.5 h-3.5 text-amber-400" />
             <span>Exam Results Scorecard</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('fees')}
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition flex items-center gap-1.5 whitespace-nowrap ${
+              activeTab === 'fees'
+                ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-md'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Fee Ledger &amp; Payments</span>
           </button>
         </div>
 
@@ -171,7 +253,7 @@ export const StudentDashboard: React.FC = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
             <div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/30 text-xs font-semibold text-brand-400 mb-3">
-                <Sparkles className="w-4 h-4" /> Phase 5 Exam Results Engine Active
+                <Sparkles className="w-4 h-4" /> Phase 6 Fees &amp; Payments Gateway Active
               </span>
               <h2 className="text-3xl font-extrabold text-white mb-2">Welcome back, {student?.name || 'Student'}!</h2>
               <p className="text-slate-400 text-sm max-w-xl">
@@ -181,8 +263,20 @@ export const StudentDashboard: React.FC = () => {
               </p>
             </div>
 
-            {/* Results / Attendance Gauge */}
-            {activeTab === 'results' && resultsInfo ? (
+            {/* Quick Metrics Widget */}
+            {activeTab === 'fees' && feeSummary ? (
+              <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-700/80 flex items-center space-x-6">
+                <div>
+                  <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Remaining Due</p>
+                  <p className="text-3xl font-black text-rose-400 mt-1 font-mono">
+                    &#x20B9;{feeSummary.totalRemaining.toLocaleString()}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Paid: &#x20B9;{feeSummary.totalPaid.toLocaleString()} / &#x20B9;{feeSummary.totalAssigned.toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            ) : activeTab === 'results' && resultsInfo ? (
               <div className="p-6 rounded-2xl bg-slate-900/90 border border-slate-700/80 flex items-center space-x-6">
                 <div>
                   <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Semester SGPA</p>
@@ -225,7 +319,6 @@ export const StudentDashboard: React.FC = () => {
         {/* Tab 1: Attendance */}
         {activeTab === 'attendance' && (
           <div className="space-y-6">
-            {/* Academic Details Strip */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center space-x-4">
                 <div className="p-3 bg-brand-500/10 rounded-xl text-brand-400">
@@ -258,7 +351,6 @@ export const StudentDashboard: React.FC = () => {
               </div>
             </div>
 
-            {/* Subject-Wise Attendance Breakdown Cards */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
@@ -334,39 +426,6 @@ export const StudentDashboard: React.FC = () => {
                   ))}
                 </div>
               )}
-            </div>
-
-            {/* Log Feed */}
-            <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden">
-              <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-indigo-400" />
-                  <span>Recent Class Session Activity Log</span>
-                </h3>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead>
-                    <tr className="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-900/60">
-                      <th className="py-3 px-6">Session Date</th>
-                      <th className="py-3 px-6">Subject Code</th>
-                      <th className="py-3 px-6">Subject Name</th>
-                      <th className="py-3 px-6 text-center">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {recentLogs.map((log) => (
-                      <tr key={log.id} className="hover:bg-slate-900/40 transition">
-                        <td className="py-3 px-6 font-mono text-slate-300">{log.date}</td>
-                        <td className="py-3 px-6 font-mono text-brand-300 font-semibold">{log.subjectCode}</td>
-                        <td className="py-3 px-6 text-white font-medium">{log.subjectName}</td>
-                        <td className="py-3 px-6 text-center">{getStatusBadge(log.status)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
             </div>
           </div>
         )}
@@ -468,7 +527,273 @@ export const StudentDashboard: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Tab 3: Fee Ledger & Payments */}
+        {activeTab === 'fees' && (
+          <div className="space-y-6">
+            {/* Active Fee Invoices */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-emerald-400" />
+                  <span>Assigned Fee Invoices &amp; Balances</span>
+                </h3>
+                <button
+                  onClick={loadData}
+                  className="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-900 border border-slate-800 transition"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              {loading ? (
+                <div className="glass-panel p-12 text-center text-slate-400 rounded-3xl border border-slate-800">
+                  <RefreshCw className="w-6 h-6 animate-spin mx-auto text-emerald-400 mb-2" />
+                  Loading assigned fee structures...
+                </div>
+              ) : studentFees.length === 0 ? (
+                <div className="glass-panel p-8 text-center text-slate-400 rounded-3xl border border-slate-800">
+                  No active fee structures assigned to your profile yet.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {studentFees.map((sf) => (
+                    <div
+                      key={sf.id}
+                      className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 hover:border-slate-700 transition"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <span className="px-2.5 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            Due Date: {sf.dueDate}
+                          </span>
+                          <h4 className="text-lg font-extrabold text-white mt-1.5">
+                            {sf.feeStructure.title}
+                          </h4>
+                          <p className="text-xs text-slate-400">Academic Year: {sf.feeStructure.academicYear}</p>
+                        </div>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-black ${
+                            sf.status === 'PAID'
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : sf.status === 'PARTIALLY_PAID'
+                              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                              : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                          }`}
+                        >
+                          {sf.status}
+                        </span>
+                      </div>
+
+                      {/* Amounts Bar */}
+                      <div className="grid grid-cols-3 gap-2 p-3 bg-slate-950/60 rounded-2xl text-center border border-slate-800/80">
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Total Billed</p>
+                          <p className="text-sm font-bold font-mono text-slate-200 mt-0.5">&#x20B9;{sf.totalAmount.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Paid</p>
+                          <p className="text-sm font-bold font-mono text-emerald-400 mt-0.5">&#x20B9;{sf.paidAmount.toLocaleString()}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">Balance Due</p>
+                          <p className="text-sm font-bold font-mono text-rose-400 mt-0.5">&#x20B9;{sf.remainingAmount.toLocaleString()}</p>
+                        </div>
+                      </div>
+
+                      {/* Pay Action */}
+                      <div className="flex items-center justify-between pt-2">
+                        <span className="text-xs text-slate-400">
+                          {sf.payments?.length || 0} transaction(s) recorded
+                        </span>
+                        {sf.remainingAmount > 0 ? (
+                          <button
+                            onClick={() => handleOpenPayModal(sf)}
+                            className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-600 to-indigo-600 text-white rounded-xl text-xs font-bold hover:shadow-lg hover:shadow-emerald-600/20 transition"
+                          >
+                            <CreditCard className="w-3.5 h-3.5" />
+                            <span>Pay Fee Now</span>
+                          </button>
+                        ) : (
+                          <span className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                            <CheckCircle2 className="w-4 h-4" /> Fully Paid
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Payment Transaction History */}
+            <div className="glass-panel rounded-3xl border border-slate-800 overflow-hidden">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-950/40">
+                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-indigo-400" />
+                  <span>Payment History &amp; Official Receipts</span>
+                </h3>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider bg-slate-900/60">
+                      <th className="py-3.5 px-6">Transaction Ref</th>
+                      <th className="py-3.5 px-6">Date &amp; Time</th>
+                      <th className="py-3.5 px-6">Payment Mode</th>
+                      <th className="py-3.5 px-6 text-right">Amount Paid</th>
+                      <th className="py-3.5 px-6 text-center">Receipt</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {studentFees.flatMap((sf) => sf.payments || []).length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-8 text-center text-slate-400">
+                          No payment transactions recorded yet.
+                        </td>
+                      </tr>
+                    ) : (
+                      studentFees
+                        .flatMap((sf) => sf.payments || [])
+                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                        .map((pmt) => (
+                          <tr key={pmt.id} className="hover:bg-slate-900/40 transition">
+                            <td className="py-3.5 px-6 font-mono text-brand-300 font-bold">{pmt.transactionId}</td>
+                            <td className="py-3.5 px-6 text-slate-300 font-mono">
+                              {new Date(pmt.createdAt).toLocaleDateString()} {new Date(pmt.createdAt).toLocaleTimeString()}
+                            </td>
+                            <td className="py-3.5 px-6 text-emerald-400 font-semibold">{pmt.paymentMethod}</td>
+                            <td className="py-3.5 px-6 text-right font-mono font-bold text-white">
+                              &#x20B9;{pmt.amount.toLocaleString()}
+                            </td>
+                            <td className="py-3.5 px-6 text-center">
+                              <button
+                                onClick={() => setActiveReceiptPaymentId(pmt.id)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700 text-brand-300 hover:text-white hover:border-brand-500 text-[11px] font-bold transition"
+                              >
+                                <Printer className="w-3 h-3" />
+                                <span>Receipt</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
+
+      {/* Mock Payment Gateway Drawer / Modal */}
+      {payFeeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md overflow-y-auto">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6 my-8">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-emerald-400" />
+                  <span>Fee Payment Gateway</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">{payFeeTarget.feeStructure.title}</p>
+              </div>
+              <button
+                onClick={() => setPayFeeTarget(null)}
+                className="text-slate-400 hover:text-white"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {payError && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-400 text-xs font-semibold">
+                {payError}
+              </div>
+            )}
+
+            {paySuccessMsg && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-400 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{paySuccessMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleExecutePayment} className="space-y-4">
+              <div className="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">Total Billed:</span>
+                  <span className="font-mono text-slate-200">&#x20B9;{payFeeTarget.totalAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-slate-400">Already Paid:</span>
+                  <span className="font-mono text-emerald-400">&#x20B9;{payFeeTarget.paidAmount.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between text-sm font-bold border-t border-slate-800 pt-2">
+                  <span className="text-slate-200">Balance Due:</span>
+                  <span className="font-mono text-rose-400">&#x20B9;{payFeeTarget.remainingAmount.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Enter Payment Amount (&#x20B9;)</label>
+                <input
+                  type="number"
+                  value={paymentAmount}
+                  onChange={(e) => setPaymentAmount(Number(e.target.value))}
+                  max={payFeeTarget.remainingAmount}
+                  min={1}
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-lg font-mono font-bold text-white focus:outline-none focus:border-brand-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase mb-1">Select Payment Gateway Mode</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as any)}
+                  className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:border-brand-500"
+                >
+                  <option value="UPI">UPI (Google Pay / PhonePe / Paytm)</option>
+                  <option value="CREDIT_CARD">Credit Card</option>
+                  <option value="DEBIT_CARD">Debit Card</option>
+                  <option value="NET_BANKING">Net Banking</option>
+                  <option value="ONLINE">Razorpay Sandbox Gateway</option>
+                </select>
+              </div>
+
+              <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl text-[11px] text-slate-400">
+                <span className="font-bold text-emerald-400">Mock Payment Mode Active:</span> Transaction will be verified instantly &amp; assigned a unique reference ID.
+              </div>
+
+              <button
+                type="submit"
+                disabled={payLoading}
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 to-indigo-600 text-white font-bold rounded-xl text-sm shadow-lg shadow-emerald-600/20 hover:opacity-95 transition flex items-center justify-center gap-2"
+              >
+                {payLoading ? (
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4" />
+                    <span>Pay &#x20B9;{paymentAmount.toLocaleString()} Now</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Printable Receipt Modal */}
+      {activeReceiptPaymentId && (
+        <ReceiptModal
+          paymentId={activeReceiptPaymentId}
+          onClose={() => setActiveReceiptPaymentId(null)}
+        />
+      )}
 
       <footer className="text-center text-xs text-slate-500 z-10 py-4">
         AcademiaPro College ERP &copy; 2026 | Student Portal

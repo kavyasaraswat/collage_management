@@ -12,6 +12,7 @@ import studentRoutes from './routes/student';
 import attendanceRoutes from './routes/attendance';
 import examRoutes from './routes/exam';
 import marksRoutes from './routes/marks';
+import feeRoutes from './routes/fee';
 
 const app: Express = express();
 
@@ -33,6 +34,7 @@ app.use('/api/students', studentRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/marks', marksRoutes);
+app.use('/api/fees', feeRoutes);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

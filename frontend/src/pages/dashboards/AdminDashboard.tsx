@@ -13,6 +13,7 @@ import {
   Sparkles,
   CheckSquare,
   Award,
+  CreditCard,
 } from 'lucide-react';
 import OverviewTab from '../../components/admin/OverviewTab';
 import StudentManagement from '../../components/admin/StudentManagement';
@@ -21,6 +22,7 @@ import AcademicManagement from '../../components/admin/AcademicManagement';
 import SubjectManagement from '../../components/admin/SubjectManagement';
 import AdminAttendanceMonitor from '../../components/admin/AdminAttendanceMonitor';
 import AdminExamManagement from '../../components/admin/AdminExamManagement';
+import AdminFeeManagement from '../../components/admin/AdminFeeManagement';
 
 import { departmentService, Department } from '../../services/departmentService';
 import { courseService, Course } from '../../services/courseService';
@@ -33,7 +35,7 @@ import { studentService } from '../../services/studentService';
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'students' | 'teachers' | 'academic' | 'subjects' | 'attendance' | 'exams'
+    'overview' | 'students' | 'teachers' | 'academic' | 'subjects' | 'attendance' | 'exams' | 'fees'
   >('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -244,6 +246,21 @@ export const AdminDashboard: React.FC = () => {
               <Award className="w-4 h-4 text-amber-400" />
               <span>Exams &amp; Results Hub</span>
             </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('fees');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition ${
+                activeTab === 'fees'
+                  ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-lg shadow-brand-600/25'
+                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+              }`}
+            >
+              <CreditCard className="w-4 h-4 text-emerald-400" />
+              <span>Fees &amp; Payments</span>
+            </button>
           </nav>
         </div>
 
@@ -287,16 +304,17 @@ export const AdminDashboard: React.FC = () => {
                 {activeTab === 'subjects' && 'Subject Syllabus & Curriculum'}
                 {activeTab === 'attendance' && 'College Attendance Monitor & Analytics'}
                 {activeTab === 'exams' && 'Exams Scheduling & Results Analytics Hub'}
+                {activeTab === 'fees' && 'Fees Architecture, Payment Gateway & Billing'}
               </h2>
               <p className="text-xs text-slate-400 font-medium hidden sm:block">
-                AcademiaPro Enterprise System &bull; Phase 5 Active
+                AcademiaPro Enterprise System &bull; Phase 6 Active
               </p>
             </div>
           </div>
 
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-semibold text-emerald-400">
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Phase 5 Active</span>
+            <span>Phase 6 Active</span>
           </div>
         </header>
 
@@ -357,6 +375,8 @@ export const AdminDashboard: React.FC = () => {
               onRefresh={loadAllMasterData}
             />
           )}
+
+          {activeTab === 'fees' && <AdminFeeManagement />}
         </div>
 
         <footer className="p-6 text-center text-xs text-slate-500 mt-auto border-t border-slate-800/60">

@@ -13,6 +13,9 @@ import attendanceRoutes from './routes/attendance';
 import examRoutes from './routes/exam';
 import marksRoutes from './routes/marks';
 import feeRoutes from './routes/fee';
+import timetableRoutes from './routes/timetable';
+import noticeRoutes from './routes/notice';
+import notificationRoutes from './routes/notification';
 
 const app: Express = express();
 
@@ -35,6 +38,9 @@ app.use('/api/attendance', attendanceRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/marks', marksRoutes);
 app.use('/api/fees', feeRoutes);
+app.use('/api/timetable', timetableRoutes);
+app.use('/api/notices', noticeRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Global Error Handler
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {

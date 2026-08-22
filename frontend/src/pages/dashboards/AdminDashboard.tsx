@@ -14,6 +14,8 @@ import {
   CheckSquare,
   Award,
   CreditCard,
+  Calendar,
+  Bell,
 } from 'lucide-react';
 import OverviewTab from '../../components/admin/OverviewTab';
 import StudentManagement from '../../components/admin/StudentManagement';
@@ -23,6 +25,8 @@ import SubjectManagement from '../../components/admin/SubjectManagement';
 import AdminAttendanceMonitor from '../../components/admin/AdminAttendanceMonitor';
 import AdminExamManagement from '../../components/admin/AdminExamManagement';
 import AdminFeeManagement from '../../components/admin/AdminFeeManagement';
+import AdminTimetableNoticeHub from '../../components/admin/AdminTimetableNoticeHub';
+import NotificationCenterModal from '../../components/NotificationCenterModal';
 
 import { departmentService, Department } from '../../services/departmentService';
 import { courseService, Course } from '../../services/courseService';
@@ -35,9 +39,10 @@ import { studentService } from '../../services/studentService';
 export const AdminDashboard: React.FC = () => {
   const { user, logout } = useAuth();
   const [activeTab, setActiveTab] = useState<
-    'overview' | 'students' | 'teachers' | 'academic' | 'subjects' | 'attendance' | 'exams' | 'fees'
+    'overview' | 'students' | 'teachers' | 'academic' | 'subjects' | 'attendance' | 'exams' | 'fees' | 'timetable'
   >('overview');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   // Master Shared State
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -261,6 +266,21 @@ export const AdminDashboard: React.FC = () => {
               <CreditCard className="w-4 h-4 text-emerald-400" />
               <span>Fees &amp; Payments</span>
             </button>
+
+            <button
+              onClick={() => {
+                setActiveTab('timetable');
+                setIsSidebarOpen(false);
+              }}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-xs font-semibold transition ${
+                activeTab === 'timetable'
+                  ? 'bg-gradient-to-r from-brand-600 to-indigo-600 text-white shadow-lg shadow-brand-600/25'
+                  : 'text-slate-400 hover:bg-slate-800/60 hover:text-slate-200'
+              }`}
+            >
+              <Calendar className="w-4 h-4 text-brand-400" />
+              <span>Timetable &amp; Notices</span>
+            </button>
           </nav>
         </div>
 
@@ -305,16 +325,26 @@ export const AdminDashboard: React.FC = () => {
                 {activeTab === 'attendance' && 'College Attendance Monitor & Analytics'}
                 {activeTab === 'exams' && 'Exams Scheduling & Results Analytics Hub'}
                 {activeTab === 'fees' && 'Fees Architecture, Payment Gateway & Billing'}
+                {activeTab === 'timetable' && 'Timetable Engine, Campus Notices & Broadcasts'}
               </h2>
               <p className="text-xs text-slate-400 font-medium hidden sm:block">
-                AcademiaPro Enterprise System &bull; Phase 6 Active
+                AcademiaPro Enterprise System &bull; Phase 7 Active
               </p>
             </div>
           </div>
 
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-semibold text-emerald-400">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Phase 6 Active</span>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setShowNotificationModal(true)}
+              className="p-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 rounded-2xl text-slate-300 hover:text-white transition relative"
+              title="Notifications"
+            >
+              <Bell className="w-4 h-4 text-brand-400" />
+            </button>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs font-semibold text-emerald-400">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Phase 7 Active</span>
+            </div>
           </div>
         </header>
 
@@ -377,7 +407,22 @@ export const AdminDashboard: React.FC = () => {
           )}
 
           {activeTab === 'fees' && <AdminFeeManagement />}
+
+          {activeTab === 'timetable' && (
+            <AdminTimetableNoticeHub
+              courses={courses}
+              semesters={semesters}
+              sections={sections}
+              subjects={subjects}
+              departments={departments}
+            />
+          )}
         </div>
+
+        {/* Notifications Modal */}
+        {showNotificationModal && (
+          <NotificationCenterModal onClose={() => setShowNotificationModal(false)} />
+        )}
 
         <footer className="p-6 text-center text-xs text-slate-500 mt-auto border-t border-slate-800/60">
           AcademiaPro ERP &copy; 2026 | Comprehensive Enterprise College Platform
